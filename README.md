@@ -1,11 +1,77 @@
-<div align="center">
+# 📱 Флешер — Гра-колекція та навчальний симулятор прошивки смартфонів
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Telegram-бот + Telegram Mini App українською мовою з реальними покроковими інструкціями для 15 моделей телефонів (Samsung, Xiaomi, Poco, Pixel, iPhone, Nothing).
 
-  <h1>Built with AI Studio</h2>
+> ⚠️ **Важливе застереження:** Це навчальна гра-симулятор. Реальні дії зі своїм телефоном робляться на власний ризик і після обов'язкової звірки з офіційною сторінкою моделі.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+---
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## 🛠️ Встановлення та налаштування (Arch Linux)
 
-</div>
+В Arch Linux системний Python позначено як «externally managed», тому всі залежності встановлюються виключно у віртуальне середовище `venv`.
+
+### 1. Системні пакунки
+Встановіть Python та інструмент для тунелювання HTTPS (потрібен для Telegram Mini App):
+```bash
+sudo pacman -S python git cloudflared
+```
+
+### 2. Створення віртуального середовища та встановлення залежностей
+Команди однаково працюють в оболонках **fish** та **bash**:
+```bash
+python -m venv venv
+venv/bin/pip install --upgrade pip
+venv/bin/pip install -r requirements.txt
+```
+*(Для користувачів fish-оболонки за бажанням можна активувати через `source venv/bin/activate.fish`).*
+
+### 3. Налаштування файлу оточення `.env`
+Скопіюйте шаблон конфігурації:
+```bash
+cp .env.example .env
+```
+Відкрийте `.env` і відредагуйте параметри:
+- `BOT_TOKEN`: Отримайте у [@BotFather](https://t.me/BotFather) за допомогою `/newbot`.
+- `ADMIN_IDS`: Ваш числовий Telegram ID (дізнатися можна за командою `/id` або в боті `@userinfobot`).
+- `PORT`: За замовчуванням `8765` (порт 8000 вільний для ваших інших сервісів).
+- `DEV_MODE`: `true` для локальної розробки та браузерного тестування без підпису.
+- `APP_MODE`: `DEBUG` (кулдаун 10 с), `SIMULATION` (2 хв) або `REAL` (2 години).
+
+---
+
+## 🤖 Налаштування бота в @BotFather
+
+1. Відкрийте [@BotFather](https://t.me/BotFather) і введіть `/newbot`.
+2. Вкажіть назву бота (наприклад, `Phone Flasher Game`) і юзернейм, що закінчується на `bot`.
+3. Скопіюйте наданий `token` у поле `BOT_TOKEN` у вашому `.env`.
+4. Налаштування кнопки меню (Web App):
+   - Надішліть `/setmenubutton`.
+   - Виберіть створеного бота.
+   - Введіть назву кнопки: `📱 Грати`.
+   - Введіть ваш HTTPS URL (з виводу `cloudflared` після запуску `run.py`).
+
+---
+
+## 🚀 Запуск проєкту
+
+Запуск здійснюється однією командою:
+```bash
+venv/bin/python run.py
+```
+
+### Що відбувається під час запуску:
+1. Ініціалізується локальна база даних SQLite (`game.db`) у режимі WAL.
+2. Якщо в системі встановлено `cloudflared`, автоматично створюється безкоштовний публічний HTTPS тунель виду `https://*.trycloudflare.com` та виводиться у консоль.
+3. Одночасно стартує асинхронний бекенд FastAPI і Telegram-бот (aiogram 3).
+4. Mini App доступний у Telegram за кнопкою або локально в браузері: `http://localhost:8765`.
+
+---
+
+## 🔧 Вирішення типових проблем
+
+| Проблема | Причина | Рішення |
+| :--- | :--- | :--- |
+| **Порт зайнятий (`[Errno 98] Address already in use`)** | Порт 8765 вже використовується іншим процесом | Змініть рядок `PORT=8766` у файлі `.env`. |
+| **Помилка `422 Unprocessable Entity` від FastAPI** | Тіло запиту клієнта не відповідає схемі Pydantic | Перевірте вкладку Network у DevTools: API завжди повертає деталі помилки у полі `detail`. |
+| **Тунель не піднявся (`cloudflared не знайдено`)** | Не встановлено утиліту тунелювання | Виконайте `sudo pacman -S cloudflared`. Для тестування у звичайному браузері тунель не потрібен — відкрийте `http://localhost:8765` з `DEV_MODE=true`. |
+| **Помилка `401 Unauthorized: недійсний підпис`** | `DEV_MODE=false`, а запит надіслано з браузера без Telegram | Увімкніть `DEV_MODE=true` у `.env` для тестування або відкривайте Mini App виключно всередині клієнта Telegram. |
